@@ -34,6 +34,13 @@ public class TourRating {
         this.comment = comment;
     }
 
+    public TourRating(TourRating tourRating) {
+        this.tourId = tourRating.tourId;
+        this.customerId = tourRating.getCustomerId();
+        this.score = tourRating.getScore();
+        this.comment = tourRating.getComment();
+    }
+
     protected TourRating(){}
 
     public Integer getScore() {

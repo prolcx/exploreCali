@@ -16,6 +16,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.annotation.PropertyAccessor.FIELD;
 
@@ -59,13 +61,12 @@ public class ExplorecaliApplication implements CommandLineRunner {
 
 	private void createTour(String importFile) throws IOException {
 		List<TourFromFile> toursFromFile = new ObjectMapper().setVisibility(FIELD, JsonAutoDetect.Visibility.ANY)
-				.readValue(new FileInputStream(importFile), new TypeReference<List<TourFromFile>>() {});
+				.readValue(new FileInputStream(importFile), new TypeReference<List<Map<String, String>>>() {})
+				.stream().map(TourFromFile::new).collect(Collectors.toList());
 
 		toursFromFile.forEach(
 				arrayChild -> tourService.createTour(
-						arrayChild.getTitle(), arrayChild.getDescription(), arrayChild.getBlurb(), arrayChild.getPrice(),
-						arrayChild.getLength(), arrayChild.getBullets(), arrayChild.getKeywords(), arrayChild.getPackageType(),
-						arrayChild.getDifficulty(), arrayChild.getRegion()
+						arrayChild.getTitle(), arrayChild.getPackageName(), arrayChild.getDetails()
 				)
 		);
 	}

@@ -2,8 +2,7 @@ package com.example.ec.web;
 
 import com.example.ec.domain.Tour;
 import com.example.ec.domain.TourRating;
-import com.example.ec.domain.TourRatingPk;
-import com.example.ec.model.RatingRequest;
+
 import com.example.ec.repo.TourRatingRespository;
 import com.example.ec.repo.TourRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,57 +30,57 @@ public class TourRatingController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createTourRating(@PathVariable(value = "tourId") Integer tourId,
-                                 @RequestBody @Validated RatingRequest request) {
+    public void createTourRating(@PathVariable(value = "tourId") String tourId,
+                                 @RequestBody @Validated TourRating request) {
 
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(()-> new NoSuchElementException("Tour does not exist " + tourId));
 
-        tourRatingRespository.save(new TourRating(new TourRatingPk(tour, request.getCustomerId()),
-                request.getScore(), request.getComment()));
+        tourRatingRespository.save(new TourRating(tourId, request.getCustomerId(), request.getScore(),
+                                                    request.getComment()));
 
     }
 
     @GetMapping
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public List<RatingRequest> getAllRatings(@PathVariable(value = "tourId") Integer tourId) {
+    public Page<TourRating> getAllRatings(@PathVariable(value = "tourId") String tourId,
+                                          Pageable pageable) {
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(()-> new NoSuchElementException("Tour does not exist " + tourId));
 
-        List<RatingRequest> ratingList = tourRatingRespository.findByPkTourId(tourId)
-                .stream().map(RatingRequest::new).collect(Collectors.toList());
-
-        return ratingList;
+        return tourRatingRespository.findByTourId(tourId, pageable);
     }
 
     @GetMapping(path = "/average")
     @ResponseStatus(HttpStatus.I_AM_A_TEAPOT)
-    public Map<String, OptionalDouble> getAverageRating(@PathVariable(value = "tourId") Integer tourId) {
+    public Map<String, Double> getAverageRating(@PathVariable(value = "tourId") String tourId) {
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(()-> new NoSuchElementException("Tour does not exist " + tourId + ", so can't average"));
 
-        Map<String, OptionalDouble> resultMap = Map.of("average rating", tourRatingRespository.findByPkTourId(tourId)
-        .stream().mapToInt(TourRating::getScore).average());
+        Map<String, Double> resultMap = Map.of("average rating", tourRatingRespository.findByTourId(tourId)
+        .stream().mapToInt(TourRating::getScore).average()
+        .orElseThrow(()->
+                new NoSuchElementException("Tour has no Ratings!!!")));
 
         return resultMap;
     }
 
     @PutMapping
-    public RatingRequest updateWithPut(@PathVariable(value = "tourId") Integer tourId,
-                                        @RequestBody @Validated RatingRequest ratingRequest) {
-        TourRating rating =tourRatingRespository.findByPkTourIdAndPkCustomerId(tourId, ratingRequest.getCustomerId())
+    public TourRating updateWithPut(@PathVariable(value = "tourId") String tourId,
+                                        @RequestBody @Validated TourRating ratingRequest) {
+        TourRating rating =tourRatingRespository.findByTourIdAndCustomerId(tourId, ratingRequest.getCustomerId())
                 .orElseThrow(() -> new NoSuchElementException("Tour rating pair for request( "
                 + tourId + " for customer" + ratingRequest.getCustomerId()));
 
     rating.setScore(ratingRequest.getScore());
     rating.setComment(ratingRequest.getComment());
-    return new RatingRequest(tourRatingRespository.save(rating));
+    return tourRatingRespository.save(rating);
     }
 
     @PatchMapping
-    public RatingRequest updateWithPatch(@PathVariable(value = "tourId") Integer tourId,
-                                       @RequestBody @Validated RatingRequest ratingRequest) {
-        TourRating rating =tourRatingRespository.findByPkTourIdAndPkCustomerId(tourId, ratingRequest.getCustomerId())
+    public TourRating updateWithPatch(@PathVariable(value = "tourId") String tourId,
+                                       @RequestBody @Validated TourRating ratingRequest) {
+        TourRating rating =tourRatingRespository.findByTourIdAndCustomerId(tourId, ratingRequest.getCustomerId())
                 .orElseThrow(() -> new NoSuchElementException("Tour rating pair for request( "
                         + tourId + " for customer" + ratingRequest.getCustomerId()));
 
@@ -91,14 +90,14 @@ public class TourRatingController {
         if(ratingRequest.getComment()!=null)
         rating.setComment(ratingRequest.getComment());
 
-        return new RatingRequest(tourRatingRespository.save(rating));
+        return tourRatingRespository.save(rating);
     }
 
     @DeleteMapping(path = "/{customerId}")
-    public void deleteByCustomerId(@PathVariable(value = "tourId") int tourId,
+    public void deleteByCustomerId(@PathVariable(value = "tourId") String tourId,
                                    @PathVariable (value = "customerId") int customerId){
 
-        TourRating rating =tourRatingRespository.findByPkTourIdAndPkCustomerId(tourId, customerId)
+        TourRating rating =tourRatingRespository.findByTourIdAndCustomerId(tourId, customerId)
                 .orElseThrow(() -> new NoSuchElementException("Tour rating pair for request( "
                         + tourId + " for customer" + customerId));
         tourRatingRespository.delete(rating);
@@ -107,13 +106,13 @@ public class TourRatingController {
     //using page and sort in url---> http://localhost:8088/tours/5/ratings/page?size=4&page=0&sort=score,desc
     //remember to include the additional method in repository with pageable as argument
     @GetMapping(path = "/page")
-    public Page<RatingRequest> getAllRatingsForTourWithPage(@PathVariable(value = "tourId") Integer tourId,
+    public Page<TourRating> getAllRatingsForTourWithPage(@PathVariable(value = "tourId") String tourId,
                                                             Pageable pageable){
         Tour tour = tourRepository.findById(tourId)
                 .orElseThrow(()-> new NoSuchElementException("Tour does not exist " + tourId));
-        Page<TourRating> ratings = tourRatingRespository.findByPkTourId(tourId, pageable);
+        Page<TourRating> ratings = tourRatingRespository.findByTourId(tourId, pageable);
         return new PageImpl<>(
-                ratings.get().map(RatingRequest::new).collect(Collectors.toList()),
+                ratings.get().map(TourRating::new).collect(Collectors.toList()),
                 pageable,
                 ratings.getTotalElements()
         );

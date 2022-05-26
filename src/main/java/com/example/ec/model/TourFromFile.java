@@ -1,58 +1,31 @@
 package com.example.ec.model;
 
-import com.example.ec.domain.Difficulties;
-import com.example.ec.domain.Region;
+
+import java.util.Map;
 
 public class TourFromFile {
 
-    private String packageType;
     private String title;
-    private String blurb;
-    private String description;
-    private String bullets;
-    private String difficulty;
-    private String length;
-    private String price;
-    private String region;
-    private String keywords;
+    private String packageName;
+    private Map<String, String> details;
 
-    public String getPackageType() {
-        return packageType;
+    public TourFromFile(Map<String, String> record) {
+        this.title = record.get("title");
+        this.packageName = record.get("packageType");
+        this.details = record;
+        this.details.remove("packageType");
+        this.details.remove("title");
     }
 
     public String getTitle() {
         return title;
     }
 
-    public String getBlurb() {
-        return blurb;
+    public String getPackageName() {
+        return packageName;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public String getBullets() {
-        return bullets;
-    }
-
-    public Difficulties getDifficulty() {
-        return Difficulties.valueOf(difficulty);
-    }
-
-    public String getLength() {
-        return length;
-    }
-
-    public Integer getPrice() {
-        return Integer.parseInt(price);
-    }
-
-    public Region getRegion() {
-        return Region.findByLabel(region);
-    }
-
-    public String getKeywords() {
-        return keywords;
+    public Map<String, String> getDetails() {
+        return details;
     }
 }
